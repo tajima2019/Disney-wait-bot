@@ -48,6 +48,12 @@ func GetAttractionInfoList(park string) (attractionInfoList []AttractionInfo) {
 		// `<div class="realtime-attr-condition">` のテキストを取得
 		waitTime := cleanText(s.Find(".realtime-attr-condition").Text())
 
+		for _, word := range []string{"休止", "終了", "中止"} {
+			if strings.Contains(waitTime, word) {
+				waitTime = "やってません"
+			}
+		}
+
 		attractionInfo := AttractionInfo{
 			URL: href,
 			Name: name,

@@ -1,12 +1,13 @@
 package line
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/line/line-bot-sdk-go/v8/linebot/messaging_api"
 	"github.com/line/line-bot-sdk-go/v8/linebot/webhook"
-	
+
 	"disney-wait-bot/internal/disney"
 )
 
@@ -16,7 +17,6 @@ func WebhookHandler(req *webhook.CallbackRequest, r *http.Request) {
 	for _, event := range req.Events {
 		switch e := event.(type) {
 		case webhook.MessageEvent:
-			// テキストメッセージを受け取った場合
 			switch e.Message.(type) {
 			case webhook.TextMessageContent:
 				_, err := LineBot.ReplyMessage(
@@ -37,18 +37,85 @@ func WebhookHandler(req *webhook.CallbackRequest, r *http.Request) {
 			park := e.Postback.Data
 
 			attractionInfoList := disney.GetAttractionInfoList(park)
-			var message string
 
-			for _, attractionInfo := range attractionInfoList {
-				message += attractionInfo.Name + "\n:      " + attractionInfo.WaitTime + "\n\n"
+			// ✅ `box` に情報を格納
+			contents := []interface{}{
+				map[string]interface{}{
+					"type":   "text",
+					"text":   "🎢 ディズニーの待ち時間",
+					"weight": "bold",
+					"size":   "xl",
+					"color":  "#1DB446", // 緑色でタイトルを強調
+				},
+				map[string]interface{}{
+					"type":   "separator",
+					"margin": "md",
+				},
 			}
 
-			_, err := LineBot.ReplyMessage(
+			// ✅ Attraction データを追加（無制限に増やせる）
+			for _, attractionInfo := range attractionInfoList {
+				contents = append(contents, map[string]interface{}{
+					"type": "box",
+					"layout": "vertical", // ✅ `vertical` にすることで改行を強制
+					"contents": []interface{}{
+						// アトラクションの名前
+						map[string]interface{}{
+							"type":   "text",
+							"text":   attractionInfo.Name,
+							"weight": "bold",
+							"size":   "md",
+							"color":  "#FF0000",
+						},
+						// 待ち時間
+						map[string]interface{}{
+							"type":   "text",
+							"text":   "⏳ " + attractionInfo.WaitTime,
+							"size":   "md",
+							"color":  "#333333",
+							"weight": "bold",
+							"margin": "sm",
+						},
+					},
+					"paddingAll": "10px",
+					"backgroundColor": "#F0F0F0",
+					"cornerRadius": "8px",
+				})
+				// ✅ 各アトラクションの間に区切り線を入れる（ただし、最後には入れない）
+				if attractionInfo != attractionInfoList[len(attractionInfoList)-1] {
+					contents = append(contents, map[string]interface{}{
+						"type":   "separator",
+						"margin": "md",
+					})
+				}
+			}
+
+			// `Flex Message` の JSON を組み立て
+			flexMessageJSON := map[string]interface{}{
+				"type": "bubble",
+				"body": map[string]interface{}{
+					"type":     "box",
+					"layout":   "vertical",
+					"contents": contents,
+				},
+			}
+
+			// JSON を変換
+			flexMessageBytes, _ := json.Marshal(flexMessageJSON)
+			flexMessage, err := messaging_api.UnmarshalFlexContainer(flexMessageBytes)
+			if err != nil {
+				log.Println("Flex Message の生成に失敗:", err)
+				return
+			}
+
+			// `Flex Message` を送信
+			_, err = LineBot.ReplyMessage(
 				&messaging_api.ReplyMessageRequest{
 					ReplyToken: e.ReplyToken,
 					Messages: []messaging_api.MessageInterface{
-						&messaging_api.TextMessage{
-							Text: message,
+						&messaging_api.FlexMessage{
+							AltText:  "ディズニーの待ち時間",
+							Contents: flexMessage,
 						},
 					},
 				},
