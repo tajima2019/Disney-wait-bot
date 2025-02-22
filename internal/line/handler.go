@@ -41,7 +41,7 @@ func WebhookHandler(req *webhook.CallbackRequest, r *http.Request) {
 		case webhook.PostbackEvent: // ポストバックイベントの場合
 			park := e.Postback.Data
 
-			attractionInfoList := disney.GetAttractionInfoList(park)
+			attractionInfoList := disney.GetAttractionInfoList(disney.Park(park))
 
 			contents := createContents(attractionInfoList)
 

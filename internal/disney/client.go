@@ -2,7 +2,6 @@ package disney
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -11,14 +10,24 @@ import (
 )
 
 type AttractionInfo struct {
-	URL string
-	Name string
+	URL      string
+	Name     string
 	WaitTime string
 }
 
-func GetAttractionInfoList(park string) (attractionInfoList []AttractionInfo) {
+type Park string
+
+const (
+	Land Park = "land"
+	Sea  Park = "sea"
+)
+
+func GetAttractionInfoList(park Park) (attractionInfoList []AttractionInfo) {
+	if park != Land && park != Sea {
+		return
+	}
 	base, _ := url.Parse("https://tokyodisneyresort.info/realtime.php")
-	reference, _ := url.Parse("?park=" + park)
+	reference, _ := url.Parse("?park=" + string(park))
 	endpoint := base.ResolveReference(reference).String()
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -57,8 +66,8 @@ func GetAttractionInfoList(park string) (attractionInfoList []AttractionInfo) {
 		}
 
 		attractionInfo := AttractionInfo{
-			URL: href,
-			Name: name,
+			URL:      href,
+			Name:     name,
 			WaitTime: waitTime,
 		}
 
@@ -68,12 +77,11 @@ func GetAttractionInfoList(park string) (attractionInfoList []AttractionInfo) {
 	return attractionInfoList
 }
 
-func GetAttractionInfoListByInitial(initial string) (attractionInfoListByInitial []AttractionInfo){
-	landAttractionInfoList := GetAttractionInfoList("land")
-	seaAttractionInfoList := GetAttractionInfoList("sea")
+func GetAttractionInfoListByInitial(initial string) (attractionInfoListByInitial []AttractionInfo) {
+	landAttractionInfoList := GetAttractionInfoList(Land)
+	seaAttractionInfoList := GetAttractionInfoList(Sea)
 	attractionInfoList := append(landAttractionInfoList, seaAttractionInfoList...)
 	for _, attractionInfo := range attractionInfoList {
-		log.Println("attractionInfo.Name:", attractionInfo.Name)
 		if strings.HasPrefix(attractionInfo.Name, HiraganaToKatakana(initial)) {
 			attractionInfoListByInitial = append(attractionInfoListByInitial, attractionInfo)
 		}
@@ -82,9 +90,9 @@ func GetAttractionInfoListByInitial(initial string) (attractionInfoListByInitial
 }
 
 func cleanText(text string) string {
-	trimmed := strings.TrimSpace(text)     // 前後のスペース・改行を削除
-	words := strings.Fields(trimmed)       // 空白で区切ってスライスに変換（余分なスペースを除去）
-	return strings.Join(words, " ")        // スペース1つで結合
+	trimmed := strings.TrimSpace(text) // 前後のスペース・改行を削除
+	words := strings.Fields(trimmed)   // 空白で区切ってスライスに変換（余分なスペースを除去）
+	return strings.Join(words, " ")    // スペース1つで結合
 }
 
 // ひらがな → カタカナ 変換関数
