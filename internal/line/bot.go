@@ -11,7 +11,6 @@ import (
 
 var (
 	LineBot       *messaging_api.MessagingApiAPI
-	LineClient    *messaging_api.MessagingApiAPI
 	LineBlobClient *messaging_api.MessagingApiBlobAPI
 	LineHandler *webhook.WebhookHandler
 )
@@ -25,11 +24,6 @@ func InitBot() {
 	LineBot, err = messaging_api.NewMessagingApiAPI(os.Getenv("LINE_CHANNEL_TOKEN"))
 	if err != nil {
 		log.Fatal("LINE Bot の Bot 初期化に失敗:", err)
-	}
-
-	LineClient, err = messaging_api.NewMessagingApiAPI(os.Getenv("LINE_CHANNEL_SECRET"))
-	if err != nil {
-		log.Fatal("LINE Bot の Client 初期化に失敗:", err)
 	}
 
 	LineBlobClient, err = messaging_api.NewMessagingApiBlobAPI(os.Getenv("LINE_CHANNEL_TOKEN"))
